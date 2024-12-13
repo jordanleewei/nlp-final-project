@@ -121,7 +121,7 @@ class FeedForward(nn.Module):
 
 #############################
 class Encoder(nn.Module):
-    """Encoder block with multi-head attention,feed-forward network, addition and normalization."""
+    """Encoder with multi-head attention,feed-forward network, addition and normalization."""
     def __init__(self, num_hiddens, num_heads, ffn_num_hiddens, dropout):
         super().__init__()
         self.attention = MultiHeadAttention(num_hiddens, num_heads, dropout)
@@ -139,7 +139,7 @@ class Encoder(nn.Module):
 
 #############################
 class EncoderBlockModel(nn.Module):
-    def __init__(self, vocab_size, embed_size, num_hiddens, num_heads, ffn_num_hiddens, num_layers, dropout, num_classes):
+    def __init__(self, vocab_size, embed_size, num_hiddens, num_heads, ffn_num_hiddens, num_layers, dropout, num_classes,with_pos_encodings=None):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_size)
         self.pos_encoding = PositionalEncoding(embed_size, dropout)
@@ -148,41 +148,14 @@ class EncoderBlockModel(nn.Module):
         )
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(num_hiddens, num_classes)
+        self.with_pos_encodings = with_pos_encodings
 
     def forward(self, X, valid_lens):
         X = self.embedding(X)
-        X += self.pos_encoding(X)
+        if self.with_pos_encodings:
+            X += self.pos_encoding(X)
         for layer in self.encoder:
             X = layer(X, valid_lens)
-        X = X.mean(dim=1)  # Global average pooling
+        X = X.mean(dim=1)
         return self.classifier(self.dropout(X))
 
-
-#Decoder not used
-
-# class DecoderBlock(nn.Module):
-#     """Decoder block with masked multi-head attention, encoder-decoder attention, and feed-forward network."""
-#     def __init__(self, num_hiddens, num_heads, ffn_num_hiddens, dropout):
-#         super().__init__()
-#         self.masked_attention = MultiHeadAttention(num_hiddens, num_heads, dropout)
-#         self.encoder_decoder_attention = MultiHeadAttention(num_hiddens, num_heads, dropout)
-#         self.feed_forward = FeedForward(num_hiddens, ffn_num_hiddens)
-#         self.norm1 = nn.LayerNorm(num_hiddens)
-#         self.norm2 = nn.LayerNorm(num_hiddens)
-#         self.norm3 = nn.LayerNorm(num_hiddens)
-#         self.dropout = nn.Dropout(dropout)
-
-#     def forward(self, X, enc_outputs, valid_lens, target_valid_lens):
-#         # Masked multi-head attention
-#         masked_attention_output = self.masked_attention(X, X, X, target_valid_lens)
-#         X = self.norm1(X + self.dropout(masked_attention_output))
-
-#         # Encoder-decoder attention
-#         encoder_decoder_attention_output = self.encoder_decoder_attention(X, enc_outputs, enc_outputs, valid_lens)
-#         X = self.norm2(X + self.dropout(encoder_decoder_attention_output))
-
-#         # Feed-forward network
-#         ff_output = self.feed_forward(X)
-#         X = self.norm3(X + self.dropout(ff_output))
-
-#         return X
