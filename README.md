@@ -1,4 +1,5 @@
 # nlp-final-project
+Model trained in Python 3.10.12
 Ensure that all these libraries are installed. If not please do so and then run the file
 math
 torch
