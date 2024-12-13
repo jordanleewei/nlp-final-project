@@ -13,7 +13,7 @@ matplotlib
 1. In Google Colab environment, run %pip install d2l
 2. Set runtime to t4 GPU 
 3. Restart runtime
-4. Put new_approach.py and test_data_movie.csv in the files section on colab.
+4. Put new_approach.py and test_data_movie.csv and encoder_block_model.pt (the pretrained model weights) in the files section on colab.
 5. The pretrained model weights should be there in the zip file of the repository.
    
    If the weights are present,
