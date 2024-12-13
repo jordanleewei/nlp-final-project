@@ -1,4 +1,13 @@
 # nlp-final-project
+Ensure that all these libraries are installed. If not please do so and then run the file
+math
+torch
+d2l
+pandas
+csv
+os
+matplotlib
+
 
 1. In Google Colab environment, run %pip install d2l
 2. Set runtime to t4 GPU 
