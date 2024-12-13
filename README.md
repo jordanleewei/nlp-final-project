@@ -29,7 +29,7 @@ matplotlib
 # For Local
 Alternatively, the execution instructions are as below:
 1. Download the zip file
-2. Install all relevant modules  
+2. Install all relevant modules  - math torch d2l pandas csv os matplotlib
 3. The pretrained model weights should be there in the zip file. 
 4. If the weights are present,
       Run “python new_approach.py”
