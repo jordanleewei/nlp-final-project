@@ -8,7 +8,7 @@ csv
 os
 matplotlib
 
-
+# For Colab
 1. In Google Colab environment, run %pip install d2l
 2. Set runtime to t4 GPU 
 3. Restart runtime
@@ -26,3 +26,17 @@ matplotlib
       The model will train and run inference on the IMDB test set as well as the provided test set and return the evaluation metrics.
       The new weights will be saved and can be used for inference.
 
+# For Local
+Alternatively, the execution instructions are as below:
+1. Download the zip file
+2. Install all relevant modules  
+3. The pretrained model weights should be there in the zip file. 
+4. If the weights are present,
+      Run “python new_approach.py”
+      An input will be prompted to train or infer. Enter “infer” and continue
+      Observe model results
+5. If not, or if you wish to train again,
+      Run “python new_approach.py”
+      An input will be prompted to train or infer. Enter “train” and continue
+      The model will train and run inference on the IMDB test set as well as the provided test set and return the evaluation metrics.
+      The new weights will be saved and can be used for inference.
