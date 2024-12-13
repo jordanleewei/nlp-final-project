@@ -1,8 +1,13 @@
 import math
 import torch
 from torch import nn
+#!pip install d2l
 from d2l import torch as d2l
-
+from torch.utils.data import TensorDataset, DataLoader
+import pandas as pd
+import csv
+import os
+import matplotlib.pyplot as plt
 
 ############################
 def masked_softmax(X, valid_lens):  #@save
@@ -159,3 +164,196 @@ class EncoderBlockModel(nn.Module):
         X = X.mean(dim=1)
         return self.classifier(self.dropout(X))
 
+
+#######################################
+###### Model training and evaluation###
+#######################################
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
+# Skip this if you have already downloaded the dataset
+d2l.DATA_HUB['aclImdb'] = (d2l.DATA_URL + 'aclImdb_v1.tar.gz',
+                          '01ada507287d82875905620988597833ad4e0903')
+
+data_dir = d2l.download_extract('aclImdb', 'aclImdb')
+
+
+#@save
+def read_imdb(data_dir, is_train):
+    """Read the IMDb review dataset text sequences and labels."""
+    data = []
+    labels = []
+    folder = 'train' if is_train else 'test'
+    for label in ['pos', 'neg']:
+        labeled_folder = os.path.join(data_dir, folder, label)
+        for filename in os.listdir(labeled_folder):
+            if filename.endswith('.txt'):
+                with open(os.path.join(labeled_folder, filename), 'r', encoding='utf-8') as f:
+                    review = f.read()
+                    data.append(review)
+                    labels.append(1 if label == 'pos' else 0)
+    return data, labels
+
+train_data = read_imdb(data_dir, is_train=True)
+train_tokens = d2l.tokenize(train_data[0], token='word')
+vocab = d2l.Vocab(train_tokens, min_freq=5, reserved_tokens=['<pad>'])
+
+#@save
+def load_data_imdb(batch_size, num_steps=500):
+    """Return data iterators and the vocabulary of the IMDb review dataset."""
+    data_dir = '../data/aclImdb'
+    train_data = read_imdb(data_dir, is_train=True)
+    test_data = read_imdb(data_dir, is_train=False)
+    train_tokens = d2l.tokenize(train_data[0], token='word')
+    test_tokens = d2l.tokenize(test_data[0], token='word')
+    vocab = d2l.Vocab(train_tokens, min_freq=5, reserved_tokens=['<pad>'])
+    train_features = torch.tensor([d2l.truncate_pad(
+        vocab[line], num_steps, vocab['<pad>']) for line in train_tokens])
+    test_features = torch.tensor([d2l.truncate_pad(
+        vocab[line], num_steps, vocab['<pad>']) for line in test_tokens])
+    train_iter = DataLoader(TensorDataset(train_features, torch.tensor(train_data[1])), batch_size=batch_size, shuffle=True)
+    test_iter = DataLoader(TensorDataset(test_features, torch.tensor(test_data[1])), batch_size=batch_size)
+    return train_iter, test_iter, vocab
+
+def load_data_imdb2(batch_size, train_vocab, num_steps=500):
+        df_test=pd.read_csv("test_data_movie.csv")
+        test_data = (df_test['text'].astype(str).tolist(), df_test['label'].tolist())
+        test_tokens = d2l.tokenize(test_data[0], token='word')
+        test_features = torch.tensor([d2l.truncate_pad(
+            vocab[line], num_steps, vocab['<pad>']) for line in test_tokens])
+        test_iter = DataLoader(TensorDataset(test_features, torch.tensor(test_data[1])), batch_size=batch_size)
+        return test_iter
+
+def predict_sentiment2(net, vocab, sequence):
+        """Predict the sentiment of a text sequence."""
+        indices = [vocab[i] for i in sequence.split()]
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        with torch.no_grad():
+            temp = 0
+        for i in range(len(indices)):
+            if indices[i] != 0:
+                temp+=1
+        valid_lens = torch.Tensor([temp])
+        prediction=net(torch.tensor(indices).unsqueeze(0).to(device),valid_lens.to(device))
+        label = torch.argmax(prediction, dim=1).item()
+        return 'positive' if label == 1 else 'negative'
+
+
+def cal_metrics2(net, test_iter, vocab):
+        """Outputs a CSV file 'prediction_results2.csv' with columns: review,gold_label,predicted_label.
+        """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        net.to(device)
+        net.eval()
+
+        results = []
+        tp, tn, fp, fn = 0, 0, 0, 0
+        pad_idx = vocab['<pad>']
+
+        for batch_idx, (data, target) in enumerate(test_iter):
+            valid_lens = (data != pad_idx).sum(dim=1).to(device)
+            data, target = data.to(device), target.to(device)
+            with torch.no_grad():
+                prediction = net(data, valid_lens)
+            label = torch.argmax(prediction, dim=1)
+            data_cpu = data.cpu().numpy()
+            for i in range(len(data_cpu)):
+                tokens = [vocab.idx_to_token[idx] for idx in data_cpu[i] if idx != pad_idx]
+                review_text = " ".join(tokens)
+                gold_label = int(target[i].item())
+                pred_label = int(label[i].item())
+                results.append((review_text, gold_label, pred_label))
+
+            tp += ((label == 1) & (target == 1)).sum().item()
+            tn += ((label == 0) & (target == 0)).sum().item()
+            fp += ((label == 1) & (target == 0)).sum().item()
+            fn += ((label == 0) & (target == 1)).sum().item()
+
+        accuracy = (tp+tn)/(tp+tn+fp+fn) if (tp+tn+fp+fn) > 0 else 0
+        precision = tp/(tp+fp) if (tp+fp) > 0 else 0
+        recall = tp/(tp+fn) if (tp+fn) > 0 else 0
+        F1_Score = 2*(precision*recall)/(precision+recall) if (precision+recall) > 0 else 0
+
+        
+        with open('prediction_results2.csv', 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["review", "gold_label", "predicted_label"])
+            for review_text, gold_label, pred_label in results:
+                writer.writerow([review_text, gold_label, pred_label])
+
+        return F1_Score, precision, recall, accuracy
+
+######################################################
+train_or_infer=input("train or infer") #train and infer on new weights, or infer from pretrained weights
+if train_or_infer=="train": #train and infer from trained weights
+    batch_size = 64
+    train_iter, test_iter, vocab = load_data_imdb(batch_size)
+    print(len(vocab))
+
+    devices = d2l.try_all_gpus()
+    net = EncoderBlockModel(vocab_size = len(vocab), embed_size = 100, num_hiddens = 100, num_heads = 5, ffn_num_hiddens = 256, num_layers = 1, dropout = 0.5, num_classes = 2) #add argument with_pos_encodings=True if you want positional encodings
+
+    def init_weights(module):
+        if type(module) == nn.Linear:
+            nn.init.xavier_uniform_(module.weight)
+        if type(module) == nn.LSTM:
+            for param in module._flat_weights_names:
+                if "weight" in param:
+                    nn.init.xavier_uniform_(module._parameters[param])
+    net.apply(init_weights)
+
+    #embeddings, num_hiddens = 100,100
+    glove_embedding = d2l.TokenEmbedding('glove.6b.100d')
+    embeds = glove_embedding[vocab.idx_to_token]
+    net.embedding.weight.data.copy_(embeds)
+
+    lr, num_epochs = 0.001, 5
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr,weight_decay=1e-4)
+    net.to(device)
+    loss_array=[]
+    net.train()
+    for n in range(num_epochs):
+            train_loss = 0
+            target_num = 0
+            net.train()
+            for batch_idx, (data, target) in enumerate(train_iter):
+                data, target = data.to(device), target.to(device)
+                loss = None
+                valid_lens = (data != 0).sum(dim=1).to(device)
+                prediction= net(data,valid_lens)
+                loss = criterion(prediction,target)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item() * target.size(0)
+                target_num += target.size(0)
+
+            train_loss /= target_num
+            loss_array.append(train_loss)
+            print('Epoch: {}, Training Loss: {:.4f}'.format(n+1, train_loss))
+
+    plt.plot([i+1 for i in range(num_epochs)],loss_array)
+    plt.xlabel("Epoch")
+    plt.ylabel("Train_loss")
+    
+    ###### Test on IMDB Test Dataset ######
+    print("Test on IMDB Test Dataset")
+    print("F1,Precision,Recall,Accuracy")
+    print(cal_metrics2(net, test_iter, vocab))
+
+
+    ###### Test on CSV File ########
+    test_iter_final=load_data_imdb2(batch_size=64, train_vocab=vocab, num_steps=500)
+    print("Test on CSV File Data")
+    print(cal_metrics2(net, test_iter_final, vocab))
+    torch.save(net.state_dict(), "encoder_block_model.pt")
+
+elif train_or_infer=="infer": #infer from pretrained weights
+    test_net = EncoderBlockModel(vocab_size = len(vocab), embed_size = 100, num_hiddens = 100, num_heads = 5, ffn_num_hiddens = 256, num_layers = 1, dropout = 0.5, num_classes = 2)
+    test_iter_final=load_data_imdb2(batch_size=64, train_vocab=vocab, num_steps=500)
+    test_net.load_state_dict(torch.load("encoder_block_model.pt", weights_only=True))
+    print("Test on CSV File Data")
+    print("F1,Precision,Recall,Accuracy")
+    print(cal_metrics2(test_net, test_iter_final,vocab))
