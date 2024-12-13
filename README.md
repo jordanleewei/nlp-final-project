@@ -5,6 +5,7 @@
 3. Restart runtime
 4. Put new_approach.py and test_data_movie.csv in the files section like so:
 <img width="1294" alt="image" src="https://github.com/user-attachments/assets/ce0e7cce-2da3-44be-9579-0972133c061a" />
+<img width="373" alt="image" src="https://github.com/user-attachments/assets/0b258143-dbb2-4e40-98c9-95ee1f13fd43" />
    - the new_approach.py is being imported as a module into the notebook
   
 5. Run all cells in the notebook.
