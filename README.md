@@ -29,13 +29,14 @@ matplotlib
 # For Local
 Alternatively, the execution instructions are as below:
 1. Download the zip file
-2. Install all relevant modules  - math torch d2l pandas csv os matplotlib
-3. The pretrained model weights should be there in the zip file. 
-4. If the weights are present,
+2. Install all relevant modules using `pip install math torch d2l pandas csv os matplotlib`, in Python 3.10.12
+4. The pretrained model weights should be there in the zip file.
+5. Do the below steps with a terminal open in the folder containing the files.
+6. If the weights are present,
       Run “python new_approach.py”
       An input will be prompted to train or infer. Enter “infer” and continue
       Observe model results
-5. If not, or if you wish to train again,
+7. If not, or if you wish to train again,
       Run “python new_approach.py”
       An input will be prompted to train or infer. Enter “train” and continue
       The model will train and run inference on the IMDB test set as well as the provided test set and return the evaluation metrics.
