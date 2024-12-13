@@ -17,15 +17,20 @@ matplotlib
 5. The pretrained model weights should be there in the zip file of the repository.
    
    If the weights are present,
-      Run “python new_approach.py”
-      An input will be prompted to train or infer. Enter “infer” and continue
-      Observe model results
+      - Run “python new_approach.py”
+
+   An input will be prompted to train or infer. Enter “infer” and continue
+
+   Observe model results
    
    If not, or if you wish to train again,
-      Run “python new_approach.py”
-      An input will be prompted to train or infer. Enter “train” and continue
-      The model will train and run inference on the IMDB test set as well as the provided test set and return the evaluation metrics.
-      The new weights will be saved and can be used for inference.
+   - Run “python new_approach.py”
+
+   An input will be prompted to train or infer. Enter “train” and continue
+
+   The model will train and run inference on the IMDB test set as well as the provided test set and return the evaluation metrics.
+
+   The new weights will be saved and can be used for inference.
 
 # For Local
 Alternatively, the execution instructions are as below:
